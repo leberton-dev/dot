@@ -13,21 +13,20 @@ First stable release of `dot`, a dotfiles manager driven by a single `dotfiles.t
 | `dot doctor`         | Report unlinked repo files, dead links and invalid toml                     |
 | `dot undo`           | Restore the backups made by the last install                                |
 
-Global options: `--dry-run`, `--verbose`, `--config <path>`, `--help`, `--version`
+Global options: `--dry-run`, `--verbose`, `--config <path>`, `--help`, `--version`, `--profile`
 
 ## Tasks
 
 ### Setup
 - [x] Init project with uv (`pyproject.toml`, `src/dot/`, entry point `dot`)
 - [x] CLI skeleton with subcommands and global options
-- [ ] Define the `dotfiles.toml` format (profiles, modules, packages, links)
-- [ ] Write an example `dotfiles.toml` matching the current `.dotfiles` repo
+- [x] Define the `dotfiles.toml` format (profiles, modules, packages, links)
+- [x] Write an example `dotfiles.toml` matching the current `.dotfiles` repo
 
 ### Core
 - [ ] Load and validate the toml (clear error messages)
 - [ ] Path handling: expand `~`, resolve paths relative to the repo
 - [ ] Link state detection: ok / missing / broken / wrong target / real file in place
-- [ ] Profile detection (hostname, existing paths, OS)
 - [ ] Package manager detection (dnf, apt, pacman, brew)
 
 ### Commands
@@ -41,6 +40,7 @@ Global options: `--dry-run`, `--verbose`, `--config <path>`, `--help`, `--versio
 - [ ] `doctor`: list dead links and invalid toml entries
 - [ ] `undo`: restore backups from the last install
 - [ ] `--dry-run` support for every command that writes
+- [ ] `--profile` select which profile to install
 
 ### Quality
 - [ ] Tests running in a temporary fake `$HOME`
