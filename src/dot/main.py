@@ -2,6 +2,7 @@ from pathlib import Path
 
 from dot.cli import build_parser, DotArgs
 from dot.dotfiles import DotfilesDictError, load_dotfiles
+from dot.state_detection import compare
 
 
 def main():
@@ -14,7 +15,18 @@ def main():
         if not config_path.exists():
             print(f"dot.parsing.toml.error: no toml config found under {config_path}")
             return
-        _ = load_dotfiles(config_path=str(config_path))
+        dotfiles_path = config_path.parent
+
+        config = load_dotfiles(config_path=str(config_path))
+        for _, module in config["modules"].items():
+            for link in module["links"]:
+                print(
+                    compare(
+                        dotfiles_path / link["source"],
+                        Path(link["dest"]).expanduser(),
+                    )
+                )
+
         print(f"Hello from {config_path}")
     except DotfilesDictError as e:
         print(f"dot.parsing.toml.error: {e.message}")
