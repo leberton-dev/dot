@@ -1,14 +1,14 @@
 from pathlib import Path
 
-from dot.cli import build_parser, DotArgs
-from dot.dotfiles import DotfilesDictError, load_dotfiles
-from dot.state_detection import compare
+from dot.cli import build_parser, CliArgs
+from dot.config import ConfigError, load_config
+from dot.link_state import get_link_state
 
 
 def main():
     parser = build_parser()
 
-    args = parser.parse_args(namespace=DotArgs())
+    args = parser.parse_args(namespace=CliArgs())
 
     try:
         config_path = Path(args.config).expanduser()
@@ -17,18 +17,18 @@ def main():
             return
         dotfiles_path = config_path.parent
 
-        config = load_dotfiles(config_path=str(config_path))
+        config = load_config(config_path=str(config_path))
         for _, module in config["modules"].items():
             for link in module["links"]:
                 print(
-                    compare(
+                    get_link_state(
                         dotfiles_path / link["source"],
                         Path(link["dest"]).expanduser(),
                     )
                 )
 
         print(f"Hello from {config_path}")
-    except DotfilesDictError as e:
+    except ConfigError as e:
         print(f"dot.parsing.toml.error: {e.message}")
 
 
