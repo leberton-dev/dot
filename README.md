@@ -25,7 +25,7 @@ Global options: `--dry-run`, `--verbose`, `--config <path>`, `--help`, `--versio
 
 ### Core
 - [x] Load and validate the toml (clear error messages)
-- [ ] Path handling: expand `~`, resolve paths relative to the repo
+- [x] Path handling: expand `~`, resolve paths relative to home
 - [ ] Link state detection: ok / missing / broken / wrong target / real file in place
 - [ ] Package manager detection (dnf, apt, pacman, brew)
 

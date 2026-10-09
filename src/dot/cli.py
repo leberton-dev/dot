@@ -35,7 +35,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--verbose", required=False, help=HELP_MSG["verbose"], action="store_true"
     )
     _ = commun.add_argument(
-        "--config", help=HELP_MSG["config"], default="dotfiles.toml"
+        "--config", help=HELP_MSG["config"], default="~/.dotfiles/dotfiles.toml"
     )
 
     subparsers = parser.add_subparsers(dest="action", required=True)
