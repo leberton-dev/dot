@@ -30,7 +30,7 @@ Global options: `--dry-run`, `--verbose`, `--config <path>`, `--help`, `--versio
 - [x] Package manager detection (dnf, apt, pacman, brew)
 
 ### Commands
-- [ ] `status`: print the state of every link, grouped by module
+- [x] `status`: print the state of every link, grouped by module
 - [ ] `install`: create links, back up existing files, idempotent
 - [ ] `install`: install missing packages for the active profile
 - [ ] `install`: record backups in a state file for `undo`
