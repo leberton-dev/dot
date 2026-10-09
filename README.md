@@ -31,7 +31,7 @@ Global options: `--dry-run`, `--verbose`, `--config <path>`, `--help`, `--versio
 
 ### Commands
 - [x] `status`: print the state of every link, grouped by module
-- [ ] `install`: create links, back up existing files, idempotent
+- [x] `install`: create links, back up existing files, idempotent
 - [ ] `install`: install missing packages for the active profile
 - [ ] `install`: record backups in a state file for `undo`
 - [ ] `add`: move file into repo, create link, update the toml

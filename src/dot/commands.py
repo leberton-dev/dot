@@ -16,7 +16,7 @@ def status(config: Config, args: CliArgs) -> None:
         print("error: profile not found")
         exit(1)
 
-    dotfiles_dir = Path(args.config).parent.expanduser()
+    dotfiles_dir = Path(args.config).parent.expanduser().resolve()
     lines = [f"On profile: {args.profile}", ""]
     changes_base = 'Changes to apply:\n  (use "dot install" to apply)'
     changes: list[str] = []
@@ -54,7 +54,7 @@ def install(config: Config, args: CliArgs) -> None:
         print("error: profile not found")
         exit(1)
 
-    dotfiles_dir = Path(args.config).parent.expanduser()
+    dotfiles_dir = Path(args.config).parent.expanduser().resolve()
     print(f"[DEBUG] profile={args.profile}, dotfiles_dir={dotfiles_dir}")
 
     for module in profile["modules"]:
