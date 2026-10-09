@@ -26,6 +26,8 @@ def main():
 
     if args.command == "status":
         commands.status(config, args)
+    elif args.command == "install":
+        commands.install(config, args)
 
 
 if __name__ == "__main__":
