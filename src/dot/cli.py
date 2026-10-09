@@ -6,7 +6,7 @@ class DotArgs(argparse.Namespace):
     name: str | None = None
     dry_run: bool = False
     verbose: bool = False
-    config: str | None = None
+    config: str = ""
 
 
 HELP_MSG: dict[str, str] = {

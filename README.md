@@ -24,7 +24,7 @@ Global options: `--dry-run`, `--verbose`, `--config <path>`, `--help`, `--versio
 - [x] Write an example `dotfiles.toml` matching the current `.dotfiles` repo
 
 ### Core
-- [ ] Load and validate the toml (clear error messages)
+- [x] Load and validate the toml (clear error messages)
 - [ ] Path handling: expand `~`, resolve paths relative to the repo
 - [ ] Link state detection: ok / missing / broken / wrong target / real file in place
 - [ ] Package manager detection (dnf, apt, pacman, brew)
