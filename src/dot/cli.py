@@ -8,6 +8,7 @@ class CliArgs(argparse.Namespace):
     verbose: bool = False
     config: str = ""
     module: str | None = None
+    profile: str = ""
 
 
 HELP: dict[str, str] = {
@@ -22,6 +23,7 @@ HELP: dict[str, str] = {
     "doctor": "report unlinked repo files, dead links and invalid toml",
     "undo": "restore the backups made by the last install",
     "config": "choose which config",
+    "profile": "choose which profile",
 }
 
 
@@ -38,6 +40,7 @@ def build_parser() -> argparse.ArgumentParser:
     _ = common.add_argument(
         "--config", help=HELP["config"], default="~/.dotfiles/dotfiles.toml"
     )
+    _ = common.add_argument("--profile", help=HELP["profile"], default="asahi")
 
     subparsers = parser.add_subparsers(dest="command", required=True)
 

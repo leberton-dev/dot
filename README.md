@@ -26,8 +26,8 @@ Global options: `--dry-run`, `--verbose`, `--config <path>`, `--help`, `--versio
 ### Core
 - [x] Load and validate the toml (clear error messages)
 - [x] Path handling: expand `~`, resolve paths relative to home
-- [ ] Link state detection: ok / missing / broken / wrong target / real file in place
-- [ ] Package manager detection (dnf, apt, pacman, brew)
+- [x] Link state detection: ok / missing / broken / wrong target / real file in place
+- [x] Package manager detection (dnf, apt, pacman, brew)
 
 ### Commands
 - [ ] `status`: print the state of every link, grouped by module

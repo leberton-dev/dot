@@ -1,8 +1,19 @@
 from pathlib import Path
+import shutil
 
 from dot.cli import build_parser, CliArgs
-from dot.config import ConfigError, load_config
-from dot.link_state import get_link_state
+from dot.config import Config, ConfigError, Profile, load_config
+
+
+def has_package_manager(manager: str) -> bool:
+    return shutil.which(manager) is not None
+
+
+def get_profile(config: Config, profile_name: str) -> Profile:
+    for name, profile in config["profiles"].items():
+        if name == profile_name:
+            return profile
+    raise ValueError("no profile found")
 
 
 def main():
@@ -15,19 +26,11 @@ def main():
         if not config_path.exists():
             print(f"dot.parsing.toml.error: no toml config found under {config_path}")
             return
-        dotfiles_path = config_path.parent
-
         config = load_config(config_path=str(config_path))
-        for _, module in config["modules"].items():
-            for link in module["links"]:
-                print(
-                    get_link_state(
-                        dotfiles_path / link["source"],
-                        Path(link["dest"]).expanduser(),
-                    )
-                )
 
-        print(f"Hello from {config_path}")
+        profile = get_profile(config, args.profile)
+        print(has_package_manager(profile["package_manager"]))
+
     except ConfigError as e:
         print(f"dot.parsing.toml.error: {e.message}")
 
