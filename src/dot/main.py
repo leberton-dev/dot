@@ -1,8 +1,9 @@
+import sys
 from pathlib import Path
 
-from dot.cli import build_parser, CliArgs
-from dot.config import Config, ConfigError, load_config
 from dot import commands
+from dot.cli import CliArgs, build_parser
+from dot.config import Config, ConfigError, load_config
 
 
 def load_conf(args: CliArgs) -> Config:
@@ -10,12 +11,12 @@ def load_conf(args: CliArgs) -> Config:
         config_path = Path(args.config).expanduser()
         if not config_path.exists():
             print(f"dot.parsing.toml.error: no toml config found under {config_path}")
-            exit(1)
+            sys.exit(1)
         config = load_config(config_path=str(config_path))
         return config
     except ConfigError as e:
         print(f"dot.parsing.toml.error: {e.message}")
-        exit(1)
+        sys.exit(1)
 
 
 def main():

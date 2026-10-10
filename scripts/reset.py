@@ -1,7 +1,6 @@
 import shutil
 from pathlib import Path
 
-
 TEST_PATH: str = "/tmp/dot-test/"
 
 

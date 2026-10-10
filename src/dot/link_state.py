@@ -25,3 +25,9 @@ def get_link_state(source: Path, dest: Path) -> LinkState:
         return LinkState.wrong_target
 
     return LinkState.linked
+
+class LinkAction(Enum):
+    created = auto()
+    backed_up = auto()
+    replaced = auto()
+
