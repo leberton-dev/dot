@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from enum import auto, Enum
 from pathlib import Path
 from typing import cast
 
@@ -9,7 +10,12 @@ from dot.errors import (
     StateFileUnknownActionError,
     StateFileWrongTypeError,
 )
-from dot.link_state import LinkAction
+
+
+class LinkAction(Enum):
+    created = auto()
+    backed_up = auto()
+    replaced = auto()
 
 
 @dataclass(frozen=True)

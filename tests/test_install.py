@@ -3,8 +3,7 @@ from pathlib import Path
 
 from dot import commands
 from dot.infra.config_loader import RawLink
-from dot.link_state import LinkAction
-from dot.state import StateFile
+from dot.state import StateFile, LinkAction
 
 from tests.helpers import MakeCtx
 

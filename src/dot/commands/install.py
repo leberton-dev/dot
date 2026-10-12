@@ -1,85 +1,88 @@
-from pathlib import Path
 import typing
 
 from dot.context import Context
+from dot.infra.inspector import inspect_link
 from dot.infra.reporter import Reporter
-from dot.link_state import LinkAction, LinkState, ProfileLink, inspect_links
-from dot.state import StateFile
+from dot.domain.link_state import LinkState, LinkStatus, backup_path
+from dot.state import StateFile, LinkAction
 
 
-def _format_link(link: ProfileLink, action: str) -> str:
-    return f"{f'{link.module}:':<10}{str(link.dest):<50} state={link.state.name} -> {action}"
+def _format_link(status: LinkStatus, action: str) -> str:
+    return f"{f'{status.link.module}:':<10}{str(status.link.dest):<50} state={status.state.name} -> {action}"
 
 
-def handle_linked_state(link: ProfileLink, reporter: Reporter) -> None:
-    reporter.debug(_format_link(link, "nothing to do"))
+def handle_linked_state(status: LinkStatus, reporter: Reporter) -> None:
+    reporter.debug(_format_link(status, "nothing to do"))
 
 
 def handle_missing_state(
-    link: ProfileLink, state_file: StateFile, reporter: Reporter
+    status: LinkStatus, state_file: StateFile, reporter: Reporter
 ) -> None:
-    reporter.debug(_format_link(link, f"create link to {link.source}"))
-    link.dest.parent.mkdir(exist_ok=True, parents=True)
-    link.dest.symlink_to(link.source)
+    reporter.debug(_format_link(status, f"create link to {status.link.source}"))
+    status.link.dest.parent.mkdir(exist_ok=True, parents=True)
+    status.link.dest.symlink_to(status.link.source)
     state_file.register_action(
-        action=LinkAction.created, source=str(link.source), dest=str(link.dest)
+        action=LinkAction.created,
+        source=str(status.link.source),
+        dest=str(status.link.dest),
     )
 
 
 def handle_conflict_state(
-    link: ProfileLink, state_file: StateFile, reporter: Reporter
+    status: LinkStatus, state_file: StateFile, reporter: Reporter
 ) -> None:
-    backup = Path(str(link.dest) + ".bak")
-    reporter.debug(_format_link(link, f"backup to {backup}"))
+    backup = backup_path(status.link.dest)
+    reporter.debug(_format_link(status, f"backup to {backup}"))
 
-    if backup.exists() or backup.is_symlink():
-        reporter.warn(f"backup already exists at {backup}, skipping {link.dest}")
+    if status.backup_exists:
+        reporter.warn(f"backup already exists at {backup}, skipping {status.link.dest}")
         return
 
-    _ = link.dest.rename(backup)
-    link.dest.symlink_to(link.source)
+    _ = status.link.dest.rename(backup)
+    status.link.dest.symlink_to(status.link.source)
     state_file.register_action(
         action=LinkAction.backed_up,
-        source=str(link.source),
-        dest=str(link.dest),
+        source=str(status.link.source),
+        dest=str(status.link.dest),
         backup=str(backup),
     )
 
 
 def handle_dangling_wrong_target_state(
-    link: ProfileLink, state_file: StateFile, reporter: Reporter
+    status: LinkStatus, state_file: StateFile, reporter: Reporter
 ) -> None:
-    reporter.debug(_format_link(link, f"unlink then link to {link.source}"))
-    old_target = link.dest.readlink()
-    link.dest.unlink()
-    link.dest.symlink_to(link.source)
+    reporter.debug(_format_link(status, f"unlink then link to {status.link.source}"))
+    status.link.dest.unlink()
+    status.link.dest.symlink_to(status.link.source)
     state_file.register_action(
         action=LinkAction.replaced,
-        source=str(link.source),
-        dest=str(link.dest),
-        old_target=str(old_target),
+        source=str(status.link.source),
+        dest=str(status.link.dest),
+        old_target=str(status.target),
     )
 
 
-def handle_state(link: ProfileLink, state_file: StateFile, reporter: Reporter) -> None:
-    match link.state:
+def handle_state(status: LinkStatus, state_file: StateFile, reporter: Reporter) -> None:
+    match status.state:
         case LinkState.linked:
-            handle_linked_state(link, reporter)
+            handle_linked_state(status, reporter)
         case LinkState.missing:
-            handle_missing_state(link, state_file, reporter)
+            handle_missing_state(status, state_file, reporter)
         case LinkState.conflict:
-            handle_conflict_state(link, state_file, reporter)
+            handle_conflict_state(status, state_file, reporter)
         case LinkState.dangling | LinkState.wrong_target:
-            handle_dangling_wrong_target_state(link, state_file, reporter)
+            handle_dangling_wrong_target_state(status, state_file, reporter)
+        case LinkState.source_missing:
+            reporter.warn(
+                f"{status.link.source} does not exist, skipping {status.link.dest}"
+            )
         case _:
-            typing.assert_never(link.state)
+            typing.assert_never(status.state)
 
 
 def install(ctx: Context) -> None:
     ctx.reporter.debug(f"profile={ctx.profile.name}, dotfiles_dir={ctx.path_dotfiles}")
     state_file = StateFile(ctx.path_state)
-    for link in inspect_links(ctx.profile.links):
-        if not link.source.exists():
-            ctx.reporter.warn(f"{link.source} does not exist, skipping {link.dest}")
-            continue
-        handle_state(link, state_file, ctx.reporter)
+    for link in ctx.profile.links:
+        status = inspect_link(link)
+        handle_state(status, state_file, ctx.reporter)
