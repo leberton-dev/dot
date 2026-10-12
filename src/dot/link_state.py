@@ -1,5 +1,9 @@
+from collections.abc import Iterable, Iterator
+from dataclasses import dataclass
 from enum import Enum, auto
 from pathlib import Path
+
+from dot.domain.model import Link
 
 
 class LinkState(Enum):
@@ -25,6 +29,20 @@ def get_link_state(source: Path, dest: Path) -> LinkState:
         return LinkState.wrong_target
 
     return LinkState.linked
+
+
+@dataclass(frozen=True)
+class ProfileLink:
+    module: str
+    source: Path
+    dest: Path
+    state: LinkState
+
+
+def inspect_links(links: Iterable[Link]) -> Iterator[ProfileLink]:
+    for link in links:
+        state = get_link_state(link.source, link.dest)
+        yield ProfileLink(link.module, link.source, link.dest, state)
 
 class LinkAction(Enum):
     created = auto()

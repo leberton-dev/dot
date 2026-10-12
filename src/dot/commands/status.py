@@ -1,15 +1,14 @@
 from dot.context import Context
-from dot.link_state import LinkState
-from dot.profile import links_of_profile
+from dot.link_state import LinkState, inspect_links
 
 
 def status(ctx: Context) -> None:
-    lines = [f"On profile: {ctx.profile_name}", ""]
+    lines = [f"On profile: {ctx.profile.name}", ""]
     changes_base = 'Changes to apply:\n  (use "dot install" to apply)'
     changes: list[str] = []
     correct = 0
 
-    for link in links_of_profile(ctx.profile, ctx.config, ctx.path_dotfiles, ctx.path_home):
+    for link in inspect_links(ctx.profile.links):
         if link.state == LinkState.linked:
             correct += 1
             continue

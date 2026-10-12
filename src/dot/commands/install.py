@@ -3,8 +3,7 @@ import typing
 
 from dot.context import Context
 from dot.infra.reporter import Reporter
-from dot.link_state import LinkAction, LinkState
-from dot.profile import ProfileLink, links_of_profile
+from dot.link_state import LinkAction, LinkState, ProfileLink, inspect_links
 from dot.state import StateFile
 
 
@@ -77,9 +76,9 @@ def handle_state(link: ProfileLink, state_file: StateFile, reporter: Reporter) -
 
 
 def install(ctx: Context) -> None:
-    ctx.reporter.debug(f"profile={ctx.profile_name}, dotfiles_dir={ctx.path_dotfiles}")
+    ctx.reporter.debug(f"profile={ctx.profile.name}, dotfiles_dir={ctx.path_dotfiles}")
     state_file = StateFile(ctx.path_state)
-    for link in links_of_profile(ctx.profile, ctx.config, ctx.path_dotfiles, ctx.path_home):
+    for link in inspect_links(ctx.profile.links):
         if not link.source.exists():
             ctx.reporter.warn(f"{link.source} does not exist, skipping {link.dest}")
             continue

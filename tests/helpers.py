@@ -1,7 +1,7 @@
 from collections.abc import Callable
 
-from dot.config import Link
+from dot.infra.config_loader import RawLink
 from dot.context import Context
 
 
-type MakeCtx = Callable[[list[Link]], Context]
+type MakeCtx = Callable[[list[RawLink]], Context]

@@ -2,7 +2,7 @@ import io
 from pathlib import Path
 
 from dot import commands
-from dot.config import Link
+from dot.infra.config_loader import RawLink
 from dot.link_state import LinkAction
 from dot.state import StateFile
 
@@ -12,7 +12,7 @@ from tests.helpers import MakeCtx
 def test_creates_link_when_missing(
     make_ctx: MakeCtx, home: Path, dotfiles: Path
 ) -> None:
-    ctx = make_ctx([Link(source="git/config", dest="~/.gitconfig")])
+    ctx = make_ctx([RawLink(source="git/config", dest="~/.gitconfig")])
     commands.install(ctx)
     assert (home / ".gitconfig").readlink() == dotfiles / "git" / "config"
 
@@ -20,7 +20,7 @@ def test_creates_link_when_missing(
 def test_creates_parent_directories(
     make_ctx: MakeCtx, home: Path, dotfiles: Path
 ) -> None:
-    ctx = make_ctx([Link(source="git/config", dest="~/.config/git/ignore")])
+    ctx = make_ctx([RawLink(source="git/config", dest="~/.config/git/ignore")])
     commands.install(ctx)
     assert (home / ".config" / "git").is_dir()
     assert (
@@ -31,7 +31,7 @@ def test_creates_parent_directories(
 def test_backs_up_real_file_on_conflict(
     make_ctx: MakeCtx, home: Path, dotfiles: Path
 ) -> None:
-    ctx = make_ctx([Link(source="git/config", dest="~/.gitconfig")])
+    ctx = make_ctx([RawLink(source="git/config", dest="~/.gitconfig")])
     _ = (home / ".gitconfig").write_text("OLD")
     commands.install(ctx)
     assert not (home / ".gitconfig.bak").is_symlink()
@@ -42,7 +42,7 @@ def test_backs_up_real_file_on_conflict(
 def test_backs_up_real_directory_on_conflict(
     make_ctx: MakeCtx, home: Path, dotfiles: Path
 ) -> None:
-    ctx = make_ctx([Link(source="nvim", dest="~/.config/nvim")])
+    ctx = make_ctx([RawLink(source="nvim", dest="~/.config/nvim")])
     (home / ".config" / "nvim").mkdir(parents=True)
     _ = (home / ".config" / "nvim" / "init.lua").write_text("OLD")
     commands.install(ctx)
@@ -54,7 +54,7 @@ def test_backs_up_real_directory_on_conflict(
 def test_skips_conflict_when_backup_exists(
     make_ctx: MakeCtx, home: Path, err: io.StringIO
 ) -> None:
-    ctx = make_ctx([Link(source="git/config", dest="~/.gitconfig")])
+    ctx = make_ctx([RawLink(source="git/config", dest="~/.gitconfig")])
     _ = (home / ".gitconfig").write_text("OLD")
     _ = (home / ".gitconfig.bak").write_text("OLDER")
     commands.install(ctx)
@@ -70,7 +70,7 @@ def test_replaces_dangling_link(
     dotfiles: Path,
     tmp_path: Path,
 ) -> None:
-    ctx = make_ctx([Link(source="git/config", dest="~/.gitconfig")])
+    ctx = make_ctx([RawLink(source="git/config", dest="~/.gitconfig")])
     (home / ".gitconfig").symlink_to(tmp_path / "nowhere")
     commands.install(ctx)
     assert (home / ".gitconfig").readlink() == (dotfiles / "git" / "config")
@@ -82,7 +82,7 @@ def test_replaces_wrong_target_link(
     dotfiles: Path,
     tmp_path: Path,
 ) -> None:
-    ctx = make_ctx([Link(source="git/config", dest="~/.gitconfig")])
+    ctx = make_ctx([RawLink(source="git/config", dest="~/.gitconfig")])
     _ = (tmp_path / "other.txt").write_text("OTHER")
     (home / ".gitconfig").symlink_to(tmp_path / "other.txt")
     commands.install(ctx)
@@ -93,7 +93,7 @@ def test_replaces_wrong_target_link(
 def test_skips_link_when_source_missing(
     make_ctx: MakeCtx, home: Path, err: io.StringIO
 ) -> None:
-    ctx = make_ctx([Link(source="does/not/exist", dest="~/.missing")])
+    ctx = make_ctx([RawLink(source="does/not/exist", dest="~/.missing")])
     commands.install(ctx)
     assert not (home / ".missing").exists()
     assert not (home / ".missing").is_symlink()
@@ -105,9 +105,9 @@ def test_records_every_action_in_state_file(
 ) -> None:
     ctx = make_ctx(
         [
-            Link(source="git/config", dest="~/.gitconfig"),
-            Link(source="git/config", dest="~/.gitconfig2"),
-            Link(source="nvim", dest="~/.config/nvim"),
+            RawLink(source="git/config", dest="~/.gitconfig"),
+            RawLink(source="git/config", dest="~/.gitconfig2"),
+            RawLink(source="nvim", dest="~/.config/nvim"),
         ]
     )
     commands.install(ctx)
@@ -118,7 +118,7 @@ def test_records_every_action_in_state_file(
 
 
 def test_state_file_written_inside_context_path(make_ctx: MakeCtx, home: Path) -> None:
-    ctx = make_ctx([Link(source="git/config", dest="~/.gitconfig")])
+    ctx = make_ctx([RawLink(source="git/config", dest="~/.gitconfig")])
     commands.install(ctx)
     assert ctx.path_state.exists()
     assert not (home / ".local").exists()
@@ -136,8 +136,8 @@ def _snapshot(root: Path) -> set[tuple[Path, bool, Path | None]]:
 def test_second_install_changes_nothing(make_ctx: MakeCtx, home: Path) -> None:
     ctx = make_ctx(
         [
-            Link(source="git/config", dest="~/.gitconfig"),
-            Link(source="nvim", dest="~/.config/nvim"),
+            RawLink(source="git/config", dest="~/.gitconfig"),
+            RawLink(source="nvim", dest="~/.config/nvim"),
         ]
     )
     commands.install(ctx)

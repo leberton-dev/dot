@@ -2,7 +2,13 @@ import io
 from pathlib import Path
 import pytest
 
-from dot.config import Config, Link, Module, Profile
+from dot.infra.config_loader import (
+    RawConfig,
+    RawLink,
+    RawModule,
+    RawProfile,
+    resolve_config,
+)
 from dot.context import Context
 from dot.infra.reporter import Reporter
 from tests.helpers import MakeCtx
@@ -39,20 +45,19 @@ def err() -> io.StringIO:
 def make_ctx(
     home: Path, dotfiles: Path, tmp_path: Path, out: io.StringIO, err: io.StringIO
 ) -> MakeCtx:
-    def func(links: list[Link]) -> Context:
-        test_profile = Profile(modules=["test"], package_manager="dnf")
-        conf = Config(
-            modules={"test": Module(links=links, packages=[])},
-            profiles={"test": test_profile},
+    def func(links: list[RawLink]) -> Context:
+        raw = RawConfig(
+            modules={"test": RawModule(links=links, packages=[])},
+            profiles={"test": RawProfile(modules=["test"], package_manager="dnf")},
         )
+        config = resolve_config(raw, dotfiles, home)
         return Context(
-            config=conf,
+            config=config,
             path_home=home,
             path_dotfiles=dotfiles,
             path_state=tmp_path / "state.toml",
             reporter=Reporter(out=out, err=err),
-            profile=test_profile,
-            profile_name="test",
+            profile=config.profiles["test"],
         )
 
     return func

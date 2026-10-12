@@ -6,14 +6,14 @@ from pathlib import Path
 from dot import commands
 from dot.args import CliArgs
 from dot.cli import build_parser
-from dot.config import Config, Profile, load_config
 from dot.context import Context
+from dot.domain.model import Config, Profile
 from dot.errors import (
     CommandNotImplementedError,
-    ConfigFileNotFoundError,
     DotError,
     ProfileNotFoundError,
 )
+from dot.infra.config_loader import load_config
 from dot.infra.reporter import Reporter
 
 type Handler = Callable[[Context], None]
@@ -25,16 +25,10 @@ HANDLERS: dict[str, Handler] = {
 }
 
 
-def _load_conf(path_config: Path) -> Config:
-    if not path_config.exists():
-        raise ConfigFileNotFoundError(str(path_config))
-    return load_config(config_path=str(path_config))
-
-
 def _get_profile(config: Config, args: CliArgs) -> Profile:
-    profile = config["profiles"].get(args.profile)
+    profile = config.profiles.get(args.profile)
     if profile is None:
-        raise ProfileNotFoundError(args.profile, list(config["profiles"]))
+        raise ProfileNotFoundError(args.profile, list(config.profiles))
     return profile
 
 
@@ -48,17 +42,15 @@ def _state_path(home: Path) -> Path:
 
 
 def build_context(args: CliArgs, reporter: Reporter) -> Context:
-    path_config = Path(args.config).expanduser()
-    config = _load_conf(path_config)
-    profile = _get_profile(config, args)
-    dotfiles = path_config.parent.resolve()
+    path_config = Path(args.config).expanduser().resolve()
     home = Path.home()
+    config = load_config(path_config, home)
+    profile = _get_profile(config, args)
     state = _state_path(home)
     return Context(
         config=config,
         profile=profile,
-        profile_name=args.profile,
-        path_dotfiles=dotfiles,
+        path_dotfiles=path_config.parent,
         path_home=home,
         path_state=state,
         reporter=reporter,

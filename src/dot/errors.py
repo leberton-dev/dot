@@ -33,6 +33,15 @@ class ConfigFileNotFoundError(ConfigError):
         super().__init__(f"config file not found: {path}")
 
 
+class ConfigSyntaxError(ConfigError):
+    """Raised when the config file is not valid toml"""
+
+    def __init__(self, path: str, reason: str) -> None:
+        self.path: str = path
+        self.reason: str = reason
+        super().__init__(f"{path}: {reason}")
+
+
 class ConfigTypeError(ConfigError):
     """Raised when a value has not the correct type"""
 
@@ -122,3 +131,55 @@ class CommandNotImplementedError(DotError):
 
     def __init__(self, command: str) -> None:
         super().__init__(f"command '{command}' is not implemented yet")
+
+
+class UnknownModuleError(ConfigError):
+    """Raised when a module in a profile is unknown"""
+
+    def __init__(self, path: str, module: str) -> None:
+        self.path: str = path
+        self.module: str = module
+        super().__init__(f"{path}: unknown module '{module}'")
+
+
+class InvalidDestError(ConfigError):
+    """Raised when 'dest' is not absolute nor '~/'"""
+
+    def __init__(self, path: str, dest: str) -> None:
+        self.path: str = path
+        self.dest: str = dest
+        super().__init__(f"{path}: must be absolute or start with '~/', got '{dest}'")
+
+
+class InvalidSourceError(ConfigError):
+    """Raised when 'source' is not relative to the dotfiles repo"""
+
+    def __init__(self, path: str, source: str) -> None:
+        self.path: str = path
+        self.source: str = source
+        super().__init__(
+            f"{path}: must be relative to the dotfiles repo, got '{source}'"
+        )
+
+
+class DestConflictError(ConfigError):
+    """Raised when 'dest' is used by two modules"""
+
+    def __init__(self, path: str, dest: str, module_a: str, module_b: str) -> None:
+        self.path: str = path
+        self.dest: str = dest
+        self.module_a: str = module_a
+        self.module_b: str = module_b
+        super().__init__(f"{path}: '{dest}' is used by both {module_a} and {module_b}")
+
+
+class InvalidChoiceError(ConfigError):
+    """Raised when a choice is not contained in an enum"""
+
+    def __init__(self, path: str, value: str, allowed: list[str]) -> None:
+        self.path: str = path
+        self.value: str = value
+        self.allowed: list[str] = allowed
+        super().__init__(
+            f"{path}: unknown value '{value}' (allowed: {', '.join(allowed)})"
+        )

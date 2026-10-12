@@ -1,30 +1,43 @@
 import tomllib
+from pathlib import Path
 from typing import TypedDict, cast
 
-from dot.errors import ConfigTypeError, ConfigMissingKeyError, ConfigUnknownKeyError
+from dot.domain.model import Config, Link, Module, PackageManager, Profile
+from dot.errors import (
+    ConfigFileNotFoundError,
+    ConfigMissingKeyError,
+    ConfigSyntaxError,
+    ConfigTypeError,
+    ConfigUnknownKeyError,
+    DestConflictError,
+    InvalidChoiceError,
+    InvalidDestError,
+    InvalidSourceError,
+    UnknownModuleError,
+)
 
 
-class Link(TypedDict):
+class RawLink(TypedDict):
     source: str
     dest: str
 
 
-class Module(TypedDict):
+class RawModule(TypedDict):
     packages: list[str]
-    links: list[Link]
+    links: list[RawLink]
 
 
-class Profile(TypedDict):
+class RawProfile(TypedDict):
     modules: list[str]
     package_manager: str
 
 
-class Config(TypedDict):
-    modules: dict[str, Module]
-    profiles: dict[str, Profile]
+class RawConfig(TypedDict):
+    modules: dict[str, RawModule]
+    profiles: dict[str, RawProfile]
 
 
-def parse_link(raw: object, path: str) -> Link:
+def parse_link(raw: object, path: str) -> RawLink:
     if not isinstance(raw, dict):
         raise ConfigTypeError(f"{path}", dict, type(raw))
     link = cast(dict[str, object], raw)
@@ -46,12 +59,12 @@ def parse_link(raw: object, path: str) -> Link:
     if not isinstance(raw_dest, str):
         raise ConfigTypeError(f"{path}.dest", str, type(raw_dest))
 
-    link_dict: Link = {"source": raw_source, "dest": raw_dest}
+    link_dict: RawLink = {"source": raw_source, "dest": raw_dest}
 
     return link_dict
 
 
-def parse_links(raw: dict[str, object], path: str) -> list[Link]:
+def parse_links(raw: dict[str, object], path: str) -> list[RawLink]:
     raw_links = raw.get("links")
     if raw_links is None:
         raise ConfigMissingKeyError(path, "links")
@@ -59,7 +72,7 @@ def parse_links(raw: dict[str, object], path: str) -> list[Link]:
         raise ConfigTypeError(f"{path}.links", list, type(raw_links))
     links = cast(list[object], raw_links)
 
-    _list: list[Link] = []
+    _list: list[RawLink] = []
     for i, raw_link in enumerate(links):
         _list.append(parse_link(raw_link, f"{path}.links[{i}]"))
 
@@ -83,8 +96,8 @@ def parse_packages(raw: dict[str, object], path: str) -> list[str]:
     return _list
 
 
-def parse_modules(raw: dict[str, object], path: str) -> dict[str, Module]:
-    modules_dict: dict[str, Module] = {}
+def parse_modules(raw: dict[str, object], path: str) -> dict[str, RawModule]:
+    modules_dict: dict[str, RawModule] = {}
     for name, raw_module in raw.items():
         module_path = f"{path}.{name}"
 
@@ -132,7 +145,7 @@ def parse_package_manager(raw: dict[str, object], path: str) -> str:
     return raw_pm
 
 
-def parse_profile(raw: object, path: str) -> Profile:
+def parse_profile(raw: object, path: str) -> RawProfile:
     if not isinstance(raw, dict):
         raise ConfigTypeError(path, dict, type(raw))
     profile = cast(dict[str, object], raw)
@@ -142,7 +155,7 @@ def parse_profile(raw: object, path: str) -> Profile:
     if len(unknown_keys) != 0:
         raise ConfigUnknownKeyError(path, unknown_keys)
 
-    profile_dict: Profile = {
+    profile_dict: RawProfile = {
         "modules": parse_module_names(profile, path),
         "package_manager": parse_package_manager(profile, path),
     }
@@ -150,8 +163,8 @@ def parse_profile(raw: object, path: str) -> Profile:
     return profile_dict
 
 
-def parse_profiles(raw: dict[str, object], path: str) -> dict[str, Profile]:
-    profiles_dict: dict[str, Profile] = {}
+def parse_profiles(raw: dict[str, object], path: str) -> dict[str, RawProfile]:
+    profiles_dict: dict[str, RawProfile] = {}
 
     for name, raw_profile in raw.items():
         profiles_dict[name] = parse_profile(raw_profile, f"{path}.{name}")
@@ -159,7 +172,7 @@ def parse_profiles(raw: dict[str, object], path: str) -> dict[str, Profile]:
     return profiles_dict
 
 
-def parse_config(data: dict[str, object]) -> Config:
+def parse_config(data: dict[str, object]) -> RawConfig:
     path = "toml"
 
     allowed_keys = {"modules", "profiles"}
@@ -187,7 +200,94 @@ def parse_config(data: dict[str, object]) -> Config:
     }
 
 
-def load_config(config_path: str = "examples/dotfiles.toml") -> Config:
-    with open(config_path, "rb") as f:
-        data = tomllib.load(f)
-    return parse_config(data)
+def _resolve_source(raw: str, dotfiles: Path, path: str) -> Path:
+    p = Path(raw)
+    if p.is_absolute() or ".." in p.parts:
+        raise InvalidSourceError(path, raw)
+    return dotfiles / p
+
+
+def _resolve_dest(raw: str, home: Path, path: str) -> Path:
+    if raw.startswith("~/"):
+        return home / raw.removeprefix("~/")
+    p = Path(raw)
+    if not p.is_absolute():
+        raise InvalidDestError(path, raw)
+    return p
+
+
+def _resolve_module(
+    name: str, raw: RawModule, dotfiles: Path, home: Path, path: str
+) -> Module:
+    links: list[Link] = []
+    for i, raw_link in enumerate(raw["links"]):
+        link = Link(
+            module=name,
+            source=_resolve_source(
+                raw_link["source"], dotfiles, f"{path}.links[{i}].source"
+            ),
+            dest=_resolve_dest(raw_link["dest"], home, f"{path}.links[{i}].dest"),
+        )
+        links.append(link)
+    return Module(name=name, packages=tuple(raw["packages"]), links=tuple(links))
+
+
+def _resolve_package_manager(raw: str, path: str) -> PackageManager:
+    try:
+        return PackageManager(raw)
+    except ValueError:
+        raise InvalidChoiceError(
+            path, raw, [pm.value for pm in PackageManager]
+        ) from None
+
+
+def _resolve_profile(
+    name: str, raw: RawProfile, modules: dict[str, Module], path: str
+) -> Profile:
+    found_modules: list[Module] = []
+    for i, module_name in enumerate(raw["modules"]):
+        module = modules.get(module_name)
+        if not module:
+            raise UnknownModuleError(f"{path}.modules[{i}]", module_name)
+        found_modules.append(module)
+
+    seen: dict[Path, Link] = {}
+    for module in found_modules:
+        for link in module.links:
+            if link.dest in seen:
+                raise DestConflictError(
+                    path, str(link.dest), seen[link.dest].module, link.module
+                )
+            seen[link.dest] = link
+
+    package_manager = _resolve_package_manager(
+        raw["package_manager"], f"{path}.package_manager"
+    )
+    return Profile(
+        name=name, package_manager=package_manager, modules=tuple(found_modules)
+    )
+
+
+def resolve_config(raw: RawConfig, dotfiles: Path, home: Path) -> Config:
+    modules: dict[str, Module] = {}
+    profiles: dict[str, Profile] = {}
+    for name, raw_module in raw["modules"].items():
+        modules[name] = _resolve_module(
+            name, raw_module, dotfiles, home, f"toml.modules.{name}"
+        )
+    for name, raw_profile in raw["profiles"].items():
+        profiles[name] = _resolve_profile(
+            name, raw_profile, modules, f"toml.profiles.{name}"
+        )
+    return Config(modules=modules, profiles=profiles)
+
+
+def load_config(path: Path, home: Path) -> Config:
+    if not path.exists():
+        raise ConfigFileNotFoundError(str(path))
+    with open(path, "rb") as f:
+        try:
+            data = tomllib.load(f)
+        except tomllib.TOMLDecodeError as e:
+            raise ConfigSyntaxError(str(path), str(e)) from None
+    return resolve_config(parse_config(data), path.parent, home)
