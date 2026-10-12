@@ -2,9 +2,7 @@ from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
 
-from dot.args import CliArgs
 from dot.config import Config, Profile
-from dot.errors import ProfileNotFoundError
 from dot.link_state import LinkState, get_link_state
 
 
@@ -16,23 +14,18 @@ class ProfileLink:
     state: LinkState
 
 
-def get_profile(config: Config, args: CliArgs) -> Profile:
-    profile = config["profiles"].get(args.profile)
-    if profile is None:
-        raise ProfileNotFoundError(args.profile, list(config["profiles"]))
-    return profile
-
-
-def get_dotfiles_path(args: CliArgs) -> Path:
-    return Path(args.config).parent.expanduser().resolve()
-
 
 def links_of_profile(
-    profile: Profile, config: Config, dotfiles: Path
+    profile: Profile, config: Config, dotfiles: Path, home: Path
 ) -> Iterator[ProfileLink]:
     for module in profile["modules"]:
         for link in config["modules"][module]["links"]:
             source = dotfiles / link["source"]
-            dest = Path(link["dest"]).expanduser()
+            p = link["dest"]
+            # TODO: dest relative to current path
+            if p.startswith("~/"):
+                dest = home / p.removeprefix("~/")
+            else:
+                dest = Path(p)
             state = get_link_state(source, dest)
             yield (ProfileLink(module, source, dest, state))

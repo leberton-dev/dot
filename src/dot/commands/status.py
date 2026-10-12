@@ -1,19 +1,15 @@
-from dot.args import CliArgs
-from dot.config import Config
-from dot.infra.reporter import Reporter
+from dot.context import Context
 from dot.link_state import LinkState
-from dot.profile import get_dotfiles_path, get_profile, links_of_profile
+from dot.profile import links_of_profile
 
 
-def status(config: Config, args: CliArgs, reporter: Reporter) -> None:
-    profile = get_profile(config, args)
-    dotfiles = get_dotfiles_path(args)
-    lines = [f"On profile: {args.profile}", ""]
+def status(ctx: Context) -> None:
+    lines = [f"On profile: {ctx.profile_name}", ""]
     changes_base = 'Changes to apply:\n  (use "dot install" to apply)'
     changes: list[str] = []
     correct = 0
 
-    for link in links_of_profile(profile, config, dotfiles):
+    for link in links_of_profile(ctx.profile, ctx.config, ctx.path_dotfiles, ctx.path_home):
         if link.state == LinkState.linked:
             correct += 1
             continue
@@ -28,5 +24,4 @@ def status(config: Config, args: CliArgs, reporter: Reporter) -> None:
     lines.append(f"\nUp to date: {correct} links")
 
     for line in lines:
-        reporter.info(line)
-
+        ctx.reporter.info(line)

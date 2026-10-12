@@ -1,11 +1,10 @@
 from pathlib import Path
 import typing
 
-from dot.args import CliArgs
-from dot.config import Config
+from dot.context import Context
 from dot.infra.reporter import Reporter
 from dot.link_state import LinkAction, LinkState
-from dot.profile import ProfileLink, get_dotfiles_path, get_profile, links_of_profile
+from dot.profile import ProfileLink, links_of_profile
 from dot.state import StateFile
 
 
@@ -77,14 +76,11 @@ def handle_state(link: ProfileLink, state_file: StateFile, reporter: Reporter) -
             typing.assert_never(link.state)
 
 
-def install(config: Config, args: CliArgs, reporter: Reporter) -> None:
-    profile = get_profile(config, args)
-    dotfiles = get_dotfiles_path(args)
-    state_file = StateFile()
-    reporter.debug(f"profile={args.profile}, dotfiles_dir={dotfiles}")
-
-    for link in links_of_profile(profile, config, dotfiles):
+def install(ctx: Context) -> None:
+    ctx.reporter.debug(f"profile={ctx.profile_name}, dotfiles_dir={ctx.path_dotfiles}")
+    state_file = StateFile(ctx.path_state)
+    for link in links_of_profile(ctx.profile, ctx.config, ctx.path_dotfiles, ctx.path_home):
         if not link.source.exists():
-            reporter.warn(f"{link.source} does not exist, skipping {link.dest}")
+            ctx.reporter.warn(f"{link.source} does not exist, skipping {link.dest}")
             continue
-        handle_state(link, state_file, reporter)
+        handle_state(link, state_file, ctx.reporter)

@@ -11,9 +11,6 @@ from dot.errors import (
 )
 from dot.link_state import LinkAction
 
-BASE_STATE_FILE_DIR: str = "~/.local/state/dot"
-BASE_STATE_FILE: str = f"{BASE_STATE_FILE_DIR}/dot_state.toml"
-
 
 @dataclass(frozen=True)
 class ActionEntry:
@@ -25,13 +22,9 @@ class ActionEntry:
 
 
 class StateFile:
-    def __init__(self, path: Path | None = None) -> None:
+    def __init__(self, path: Path) -> None:
         self._reset_done: bool = False
-        self._path: Path
-        if path:
-            self._path = path.expanduser()
-        else:
-            self._path = Path(BASE_STATE_FILE).expanduser()
+        self._path: Path = path
 
     def register_action(
         self,

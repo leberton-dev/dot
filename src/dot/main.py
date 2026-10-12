@@ -1,3 +1,4 @@
+import os
 import sys
 from collections.abc import Callable
 from pathlib import Path
@@ -5,15 +6,17 @@ from pathlib import Path
 from dot import commands
 from dot.args import CliArgs
 from dot.cli import build_parser
-from dot.config import Config, load_config
-from dot.errors import CommandNotImplementedError, ConfigFileNotFoundError, DotError
+from dot.config import Config, Profile, load_config
+from dot.context import Context
+from dot.errors import (
+    CommandNotImplementedError,
+    ConfigFileNotFoundError,
+    DotError,
+    ProfileNotFoundError,
+)
 from dot.infra.reporter import Reporter
 
-type Handler = Callable[[Config, CliArgs, Reporter], None]
-
-
-def not_implemented(_config: Config, args: CliArgs, _reporter: Reporter) -> None:
-    raise CommandNotImplementedError(args.command)
+type Handler = Callable[[Context], None]
 
 
 HANDLERS: dict[str, Handler] = {
@@ -22,11 +25,44 @@ HANDLERS: dict[str, Handler] = {
 }
 
 
-def load_conf(args: CliArgs) -> Config:
-    config_path = Path(args.config).expanduser()
-    if not config_path.exists():
-        raise ConfigFileNotFoundError(str(config_path))
-    return load_config(config_path=str(config_path))
+def _load_conf(path_config: Path) -> Config:
+    if not path_config.exists():
+        raise ConfigFileNotFoundError(str(path_config))
+    return load_config(config_path=str(path_config))
+
+
+def _get_profile(config: Config, args: CliArgs) -> Profile:
+    profile = config["profiles"].get(args.profile)
+    if profile is None:
+        raise ProfileNotFoundError(args.profile, list(config["profiles"]))
+    return profile
+
+
+def _state_path(home: Path) -> Path:
+    value = os.environ.get("XDG_STATE_HOME")
+    if value and Path(value).is_absolute():
+        base = Path(value)
+    else:
+        base = home / ".local" / "state"
+    return base / "dot" / "dot_state.toml"
+
+
+def build_context(args: CliArgs, reporter: Reporter) -> Context:
+    path_config = Path(args.config).expanduser()
+    config = _load_conf(path_config)
+    profile = _get_profile(config, args)
+    dotfiles = path_config.parent.resolve()
+    home = Path.home()
+    state = _state_path(home)
+    return Context(
+        config=config,
+        profile=profile,
+        profile_name=args.profile,
+        path_dotfiles=dotfiles,
+        path_home=home,
+        path_state=state,
+        reporter=reporter,
+    )
 
 
 def main():
@@ -35,9 +71,10 @@ def main():
     args = parser.parse_args(namespace=CliArgs())
     reporter = Reporter(verbose=args.verbose)
     try:
-        config = load_conf(args)
-        handler = HANDLERS.get(args.command, not_implemented)
-        handler(config, args, reporter)
+        handler = HANDLERS.get(args.command)
+        if handler is None:
+            raise CommandNotImplementedError(args.command)
+        handler(build_context(args, reporter))
     except DotError as e:
         reporter.error(e.message)
         sys.exit(e.exit_code)
