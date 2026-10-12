@@ -1,6 +1,5 @@
 import typing
 from dot.context import Context
-from dot.domain.link_state import LinkStatus
 from dot.domain.operations import (
     BackupAndLink,
     CreateLink,

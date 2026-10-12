@@ -5,7 +5,7 @@ from dot import commands
 from dot.infra.config_loader import RawLink
 from dot.state import StateFile, LinkAction
 
-from tests.helpers import MakeCtx
+from tests.helpers import MakeCtx, snapshot
 
 
 def test_creates_link_when_missing(
@@ -123,15 +123,6 @@ def test_state_file_written_inside_context_path(make_ctx: MakeCtx, home: Path) -
     assert not (home / ".local").exists()
 
 
-def _snapshot(root: Path) -> set[tuple[Path, bool, Path | None]]:
-    entries: set[tuple[Path, bool, Path | None]] = set()
-    for path in root.rglob("*"):
-        is_link = path.is_symlink()
-        target = path.readlink() if is_link else None
-        entries.add((path.relative_to(root), is_link, target))
-    return entries
-
-
 def test_second_install_changes_nothing(make_ctx: MakeCtx, home: Path) -> None:
     ctx = make_ctx(
         [
@@ -140,8 +131,8 @@ def test_second_install_changes_nothing(make_ctx: MakeCtx, home: Path) -> None:
         ]
     )
     commands.install(ctx)
-    before = _snapshot(home)
+    before = snapshot(home)
     state_before = ctx.path_state.read_text()
     commands.install(ctx)
-    assert _snapshot(home) == before
+    assert snapshot(home) == before
     assert ctx.path_state.read_text() == state_before
