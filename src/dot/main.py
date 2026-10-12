@@ -3,7 +3,8 @@ from pathlib import Path
 
 from dot import commands
 from dot.cli import CliArgs, build_parser
-from dot.config import Config, ConfigError, load_config
+from dot.config import Config, load_config
+from dot.errors import ConfigError
 
 
 def load_conf(args: CliArgs) -> Config:
@@ -15,7 +16,7 @@ def load_conf(args: CliArgs) -> Config:
         config = load_config(config_path=str(config_path))
         return config
     except ConfigError as e:
-        print(f"dot.parsing.toml.error: {e.message}")
+        print(e.message)
         sys.exit(1)
 
 

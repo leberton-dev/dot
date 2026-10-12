@@ -1,6 +1,8 @@
 import tomllib
 from typing import TypedDict, cast
 
+from dot.errors import ConfigTypeError, ConfigMissingKeyError, ConfigUnknownKeyError
+
 
 class Link(TypedDict):
     source: str
@@ -20,54 +22,6 @@ class Profile(TypedDict):
 class Config(TypedDict):
     modules: dict[str, Module]
     profiles: dict[str, Profile]
-
-
-TOML_TYPE_NAMES: dict[type, str] = {
-    str: "string",
-    int: "integer",
-    bool: "boolean",
-    list: "array",
-    dict: "table",
-}
-
-
-class ConfigError(Exception):
-    def __init__(self, message: str) -> None:
-        super().__init__(message)
-        self.message: str = message
-
-
-class ConfigTypeError(ConfigError):
-    """Raised when a value has not the correct type"""
-
-    def __init__(self, path: str, expected: type, got: type) -> None:
-        self.path: str = path
-        self.expected: type = expected
-        self.got: type = got
-        message = f"{path}: expected {TOML_TYPE_NAMES.get(expected, expected.__name__)}, got {TOML_TYPE_NAMES.get(got, got.__name__)}"
-        super().__init__(message)
-
-
-class ConfigMissingKeyError(ConfigError):
-    """Raised when a key is missing"""
-
-    def __init__(self, path: str, missing: str) -> None:
-        self.path: str = path
-        self.missing: str = missing
-        message = f"{path}: missing key '{missing}'"
-        super().__init__(message)
-
-
-class ConfigUnknownKeyError(ConfigError):
-    """Raised when a key is unknown"""
-
-    def __init__(self, path: str, unknown: set[str]) -> None:
-        self.path: str = path
-        self.unknown: set[str] = unknown
-        keys = ", ".join(f"'{k}'" for k in sorted(unknown))
-        label = "key" if len(unknown) == 1 else "keys"
-        message = f"{path}: unknown {label} {keys}"
-        super().__init__(message)
 
 
 def parse_link(raw: object, path: str) -> Link:

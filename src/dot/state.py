@@ -1,38 +1,18 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TypedDict, cast
+from typing import cast
 
 import tomlkit
 
+from dot.errors import (
+    StateFileMissingKeyError,
+    StateFileUnknownActionError,
+    StateFileWrongTypeError,
+)
 from dot.link_state import LinkAction
 
 BASE_STATE_FILE_DIR: str = "~/.local/state/dot"
 BASE_STATE_FILE: str = f"{BASE_STATE_FILE_DIR}/dot_state.toml"
-
-
-class StateFileError(Exception):
-    pass
-
-
-class StateFileWrongTypeError(StateFileError):
-    """Raised when a value has not the correct type"""
-
-    def __init__(self, method: str, expected: type, got: type) -> None:
-        self.method: str = method
-        self.expected: type = expected
-        self.got: type = got
-        message = f"StateFile.{method}().error: expected {expected}, got {got}"
-        super().__init__(message)
-
-
-class StateFileMissingKeyError(StateFileError):
-    """Raised when a key is missing"""
-
-    def __init__(self, method: str, missing: str) -> None:
-        self.method: str = method
-        self.missing: str = missing
-        message = f"{method}: missing key '{missing}'"
-        super().__init__(message)
 
 
 @dataclass(frozen=True)
@@ -88,15 +68,12 @@ class StateFile:
                 "register_action", list, type(raw_config_actions)
             )
         config_actions = cast(list[dict[str, str]], raw_config_actions)
-
-        for raw_action in config_actions:
-            if not isinstance(raw_action, dict):
-                raise StateFileWrongTypeError("read_actions", dict, type(raw_action))
+        for i, raw_action in enumerate(config_actions):
             action_entry = cast(dict[str, object], raw_action)
-            actions.append(self._to_action_entry(action_entry))
+            actions.append(self._to_action_entry(action_entry), i)
         return actions
 
-    def _to_action_entry(self, action: dict[str, object]) -> ActionEntry:
+    def _to_action_entry(self, action: dict[str, object], i: int) -> ActionEntry:
         link_action = self._get_required_str(action, "action")
         source = self._get_required_str(action, "source")
         dest = self._get_required_str(action, "dest")
@@ -111,9 +88,7 @@ class StateFile:
                 old_target=old_target,
             )
         except KeyError:
-            raise StateFileError(
-                f"StateFile._get_action_entry().error: unknown action {link_action}"
-            )
+            raise StateFileUnknownActionError(f"actions[{i}]", "")
 
     def _get_optional_str(self, action: dict[str, object], name: str) -> str | None:
         entry = action.get(name)
