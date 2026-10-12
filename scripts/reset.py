@@ -21,7 +21,7 @@ def copy_to_home() -> None:
 
     # skip .zshrc for missing state
     _ = shutil.copy(dotfiles / "git/config", home / ".gitconfig")  # conflict state
-    _ = (home / ".gitconfig.bak").write_text("OLD BACKUP")
+    # _ = (home / ".gitconfig.bak").write_text("OLD BACKUP")
     _ = shutil.copytree(dotfiles / "nvim", home / ".config/nvim")  # conflict state
     _ = Path(home / ".zprofile").symlink_to(
         dotfiles / "some/path/thatdoes/not/exists"

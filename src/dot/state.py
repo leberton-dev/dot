@@ -70,7 +70,7 @@ class StateFile:
         config_actions = cast(list[dict[str, str]], raw_config_actions)
         for i, raw_action in enumerate(config_actions):
             action_entry = cast(dict[str, object], raw_action)
-            actions.append(self._to_action_entry(action_entry), i)
+            actions.append(self._to_action_entry(action_entry, i))
         return actions
 
     def _to_action_entry(self, action: dict[str, object], i: int) -> ActionEntry:

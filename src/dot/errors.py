@@ -13,6 +13,7 @@ def _type_name(t: type) -> str:
 
 class DotError(Exception):
     """Base error for dot program"""
+
     exit_code: int = 1
 
     def __init__(self, message: str) -> None:
@@ -22,6 +23,14 @@ class DotError(Exception):
 
 class ConfigError(DotError):
     """Parent class for config errors"""
+
+
+class ConfigFileNotFoundError(ConfigError):
+    """Raised when the config file was not found"""
+
+    def __init__(self, path: str) -> None:
+        self.path: str = path
+        super().__init__(f"config file not found: {path}")
 
 
 class ConfigTypeError(ConfigError):
@@ -95,6 +104,7 @@ class StateFileUnknownActionError(StateFileError):
 
 class ProfileNotFoundError(DotError):
     """Raised when a profile is absent from the config"""
+
     exit_code: int = 2
 
     def __init__(self, name: str, available: list[str]) -> None:
@@ -107,6 +117,7 @@ class ProfileNotFoundError(DotError):
 
 class CommandNotImplementedError(DotError):
     """Raised when a command is not implemented"""
+
     exit_code: int = 2
 
     def __init__(self, command: str) -> None:

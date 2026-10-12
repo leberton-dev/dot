@@ -1,12 +1,11 @@
-import sys
 from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
 
-from dot.cli import CliArgs
+from dot.args import CliArgs
 from dot.config import Config, Profile
+from dot.errors import ProfileNotFoundError
 from dot.link_state import LinkState, get_link_state
-from dot.logger import DotLogger
 
 
 @dataclass(frozen=True)
@@ -17,11 +16,10 @@ class ProfileLink:
     state: LinkState
 
 
-def get_profile(command: str, config: Config, args: CliArgs) -> Profile:
+def get_profile(config: Config, args: CliArgs) -> Profile:
     profile = config["profiles"].get(args.profile)
     if profile is None:
-        DotLogger.error(f"commands.{command}", "profile not found")
-        sys.exit(1)
+        raise ProfileNotFoundError(args.profile, list(config["profiles"]))
     return profile
 
 

@@ -1,16 +1,5 @@
 import argparse
 
-
-class CliArgs(argparse.Namespace):
-    command: str = ""
-    name: str | None = None
-    dry_run: bool = False
-    verbose: bool = False
-    config: str = ""
-    module: str | None = None
-    profile: str = ""
-
-
 HELP: dict[str, str] = {
     "dry run": "see what would happen",
     "verbose": "log more output",
@@ -46,7 +35,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     _ = subparsers.add_parser("status", help=HELP["status"], parents=[common])
     _ = subparsers.add_parser("install", help=HELP["install"], parents=[common])
-    add = subparsers.add_parser("add", help=HELP["add"], parents=[common])
+    add =subparsers.add_parser("add", help=HELP["add"], parents=[common])
     _ = add.add_argument("path", help=HELP["add name"], metavar="FILE")
     remove = subparsers.add_parser("remove", help=HELP["remove"], parents=[common])
     _ = remove.add_argument("module", help=HELP["remove module"], metavar="MODULE")

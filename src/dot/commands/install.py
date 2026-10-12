@@ -1,21 +1,26 @@
 from pathlib import Path
+import typing
 
-from dot.cli import CliArgs
+from dot.args import CliArgs
 from dot.config import Config
+from dot.infra.reporter import Reporter
 from dot.link_state import LinkAction, LinkState
-from dot.logger import DotLogger
 from dot.profile import ProfileLink, get_dotfiles_path, get_profile, links_of_profile
 from dot.state import StateFile
 
 
-def handle_linked_state(link: ProfileLink) -> None:
-    DotLogger.debug(link.module, str(link.dest), link.state, "nothing to do")
+def _format_link(link: ProfileLink, action: str) -> str:
+    return f"{f'{link.module}:':<10}{str(link.dest):<50} state={link.state.name} -> {action}"
 
 
-def handle_missing_state(link: ProfileLink, state_file: StateFile) -> None:
-    DotLogger.debug(
-        link.module, str(link.dest), link.state, f"create link to {link.source}"
-    )
+def handle_linked_state(link: ProfileLink, reporter: Reporter) -> None:
+    reporter.debug(_format_link(link, "nothing to do"))
+
+
+def handle_missing_state(
+    link: ProfileLink, state_file: StateFile, reporter: Reporter
+) -> None:
+    reporter.debug(_format_link(link, f"create link to {link.source}"))
     link.dest.parent.mkdir(exist_ok=True, parents=True)
     link.dest.symlink_to(link.source)
     state_file.register_action(
@@ -23,12 +28,14 @@ def handle_missing_state(link: ProfileLink, state_file: StateFile) -> None:
     )
 
 
-def handle_conflict_state(link: ProfileLink, state_file: StateFile) -> None:
+def handle_conflict_state(
+    link: ProfileLink, state_file: StateFile, reporter: Reporter
+) -> None:
     backup = Path(str(link.dest) + ".bak")
-    DotLogger.debug(link.module, str(link.dest), link.state, f"backup to {backup}")
+    reporter.debug(_format_link(link, f"backup to {backup}"))
 
     if backup.exists() or backup.is_symlink():
-        DotLogger.error("commands.install", f"backup already exists at {backup}")
+        reporter.warn(f"backup already exists at {backup}, skipping {link.dest}")
         return
 
     _ = link.dest.rename(backup)
@@ -41,13 +48,10 @@ def handle_conflict_state(link: ProfileLink, state_file: StateFile) -> None:
     )
 
 
-def handle_dangling_wrong_target_state(link: ProfileLink, state_file: StateFile) -> None:
-    DotLogger.debug(
-        link.module,
-        str(link.dest),
-        link.state,
-        f"unlink then link to {link.source}",
-    )
+def handle_dangling_wrong_target_state(
+    link: ProfileLink, state_file: StateFile, reporter: Reporter
+) -> None:
+    reporter.debug(_format_link(link, f"unlink then link to {link.source}"))
     old_target = link.dest.readlink()
     link.dest.unlink()
     link.dest.symlink_to(link.source)
@@ -59,30 +63,28 @@ def handle_dangling_wrong_target_state(link: ProfileLink, state_file: StateFile)
     )
 
 
-def handle_state(link: ProfileLink, state_file: StateFile) -> None:
-    if link.state == LinkState.linked:
-        handle_linked_state(link)
-    elif link.state == LinkState.missing:
-        handle_missing_state(link, state_file)
-    elif link.state == LinkState.conflict:
-        handle_conflict_state(link, state_file)
-    elif link.state in [LinkState.dangling, LinkState.wrong_target]:
-        handle_dangling_wrong_target_state(link, state_file)
-    else:
-        print("error: something went wrog linking")
+def handle_state(link: ProfileLink, state_file: StateFile, reporter: Reporter) -> None:
+    match link.state:
+        case LinkState.linked:
+            handle_linked_state(link, reporter)
+        case LinkState.missing:
+            handle_missing_state(link, state_file, reporter)
+        case LinkState.conflict:
+            handle_conflict_state(link, state_file, reporter)
+        case LinkState.dangling | LinkState.wrong_target:
+            handle_dangling_wrong_target_state(link, state_file, reporter)
+        case _:
+            typing.assert_never(link.state)
 
 
-def install(config: Config, args: CliArgs) -> None:
-    profile = get_profile("install", config, args)
+def install(config: Config, args: CliArgs, reporter: Reporter) -> None:
+    profile = get_profile(config, args)
     dotfiles = get_dotfiles_path(args)
     state_file = StateFile()
-    DotLogger.debug_line(f"profile={args.profile}, dotfiles_dir={dotfiles}")
+    reporter.debug(f"profile={args.profile}, dotfiles_dir={dotfiles}")
 
     for link in links_of_profile(profile, config, dotfiles):
         if not link.source.exists():
-            DotLogger.error(
-                "commands.install",
-                f"{link.source} does not exist cannot perform link to {link.dest}",
-            )
+            reporter.warn(f"{link.source} does not exist, skipping {link.dest}")
             continue
-        handle_state(link, state_file)
+        handle_state(link, state_file, reporter)
