@@ -34,7 +34,26 @@ class Skip:
     reason: str
 
 
-type Change = CreateLink | BackupAndLink | ReplaceLink
+@dataclass(frozen=True)
+class RemoveLink:
+    link: Link
+
+
+@dataclass(frozen=True)
+class RestoreBackup:
+    link: Link
+    backup: Path
+
+
+@dataclass(frozen=True)
+class RestoreLink:
+    link: Link
+    old_target: Path
+
+
+type InstallChange = CreateLink | BackupAndLink | ReplaceLink
+type UndoChange = RemoveLink | RestoreBackup | RestoreLink
+type Change = InstallChange | UndoChange
 type Operation = Noop | Skip | Change
 
 
@@ -50,6 +69,11 @@ def describe(op: Operation) -> str:
             return f"replace link to {op.old_target} with link to {op.link.source}"
         case Skip():
             return f"skip: {op.reason}"
+        case RemoveLink():
+            return f"remove link to {op.link.source}"
+        case RestoreBackup():
+            return f"restore {op.backup} in place of the link"
+        case RestoreLink():
+            return f"restore link to {op.old_target}"
         case _:
             typing.assert_never(op)
-
