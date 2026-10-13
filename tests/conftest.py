@@ -58,6 +58,7 @@ def make_ctx(
             path_state=tmp_path / "state.toml",
             reporter=Reporter(out=out, err=err),
             profile=config.profiles["test"],
+            dry_run=False,
         )
 
     return func

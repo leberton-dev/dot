@@ -54,6 +54,7 @@ def build_context(args: CliArgs, reporter: Reporter) -> Context:
         path_home=home,
         path_state=state,
         reporter=reporter,
+        dry_run=args.dry_run,
     )
 
 

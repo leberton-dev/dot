@@ -13,3 +13,4 @@ class Context:
     path_home: Path
     path_state: Path
     reporter: Reporter
+    dry_run: bool
