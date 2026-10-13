@@ -8,4 +8,4 @@ def install(ctx: Context) -> None:
     ctx.reporter.debug(f"profile={ctx.profile.name}, dotfiles_dir={ctx.path_dotfiles}")
     statuses = [inspect_link(link) for link in ctx.profile.links]
     ops = plan_install(statuses)
-    execute_plan(ctx, ops)
+    execute_plan(ctx, "install", ops)

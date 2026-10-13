@@ -2,8 +2,9 @@ import io
 from pathlib import Path
 
 from dot import commands
+from dot.domain.operations import CreateLink
 from dot.infra.config_loader import RawLink
-from dot.state import StateFile, LinkAction
+from dot.infra.journal import Journal
 
 from tests.helpers import MakeCtx, snapshot
 
@@ -110,10 +111,12 @@ def test_records_every_action_in_state_file(
         ]
     )
     commands.install(ctx)
-    actions = StateFile(ctx.path_state).read_actions()
-    assert len(actions) == 3
-    for action in actions:
-        assert action.action == LinkAction.created
+    session = Journal(ctx.path_state).read_last()
+    assert session is not None
+    assert session.complete is True
+    assert len(session.operations) == 3
+    for op in session.operations:
+        assert isinstance(op, CreateLink)
 
 
 def test_state_file_written_inside_context_path(make_ctx: MakeCtx, home: Path) -> None:

@@ -183,3 +183,11 @@ class InvalidChoiceError(ConfigError):
         super().__init__(
             f"{path}: unknown value '{value}' (allowed: {', '.join(allowed)})"
         )
+
+class StateFileSyntaxError(StateFileError):
+    """Raised when a syntax error is found in the state file"""
+
+    def __init__(self, path: str, reason: str) -> None:
+        self.path: str = path
+        self.reason: str = reason
+        super().__init__(f"{path}: {reason}")

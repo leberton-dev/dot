@@ -34,7 +34,8 @@ class Skip:
     reason: str
 
 
-type Operation = Noop | CreateLink | BackupAndLink | ReplaceLink | Skip
+type Change = CreateLink | BackupAndLink | ReplaceLink
+type Operation = Noop | Skip | Change
 
 
 def describe(op: Operation) -> str:
@@ -51,3 +52,4 @@ def describe(op: Operation) -> str:
             return f"skip: {op.reason}"
         case _:
             typing.assert_never(op)
+
