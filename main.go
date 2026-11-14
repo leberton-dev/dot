@@ -27,14 +27,24 @@ type Config struct {
 	Profiles map[string]Profile `toml:"profiles"`
 }
 
-func profileLinks(name string, config Config) []Link {
+func profileLinks(name string, config Config) ([]Link, error) {
+	profile, ok := config.Profiles[name]
+	if ok == false {
+		return nil, fmt.Errorf("unknown profile %q", name)
+	}
+
 	links := []Link{}
-	for _, moduleName := range config.Profiles[name].ModuleNames {
-		for _, link := range config.Modules[moduleName].Links {
+	for _, moduleName := range profile.ModuleNames {
+		module, ok := config.Modules[moduleName]
+		if ok == false {
+			return nil, fmt.Errorf("unknown module %q", moduleName)
+		}
+
+		for _, link := range module.Links {
 			links = append(links, link)
 		}
 	}
-	return links
+	return links, nil
 }
 
 func main() {
@@ -47,6 +57,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	ubuntuLinks := profileLinks("ubuntu", config)
+	ubuntuLinks, err := profileLinks("ubuntu", config)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
 	fmt.Println(ubuntuLinks)
 }
