@@ -1,7 +1,9 @@
 package main
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -72,9 +74,40 @@ func sourcePath(configPath string, path string) (string, error) {
 	return filepath.Join(configDir, path), nil
 }
 
+func linkStatus(link Link, configPath string) (string, error) {
+	dest, err := destPath(link.Dest)
+	if err != nil {
+		return "", err
+	}
+	info, err := os.Lstat(dest)
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return "missing", nil
+		}
+		return "", err
+	}
+
+	if info.Mode()&os.ModeSymlink != 0 {
+		source, err := sourcePath(configPath, link.Source)
+		if err != nil {
+			return "", err
+		}
+		destLink, err := os.Readlink(dest)
+		if err != nil {
+			return "", err
+		}
+		if destLink == source {
+			return "is linked", nil
+		}
+		return "linked improperly", nil
+	}
+	return "real file", nil
+}
+
 func main() {
 	fmt.Printf("Hello from dot\n")
 
+	// tomlPath := "/home/theleberton/.dotfiles/dotfiles.toml"
 	tomlPath := "examples/dotfiles.toml"
 
 	config := Config{}
@@ -91,18 +124,11 @@ func main() {
 	}
 
 	for _, link := range ubuntuLinks {
-		source, err := sourcePath(tomlPath, link.Source)
+		status, err := linkStatus(link, tomlPath)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
-		fmt.Printf("Source: %q\n", source)
-
-		dest, err := destPath(link.Dest)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-		fmt.Printf("Dest: %q\n", dest)
+		fmt.Printf("%-30s -> %s\n", link.Source, status)
 	}
 }
