@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/BurntSushi/toml"
 )
@@ -47,6 +49,20 @@ func profileLinks(name string, config Config) ([]Link, error) {
 	return links, nil
 }
 
+func absolutePath(path string) (string, error) {
+	rest, found := strings.CutPrefix(path, "~/")
+	if found == false {
+		return path, nil
+	}
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+
+	return filepath.Join(home, rest), nil
+}
+
 func main() {
 	fmt.Printf("Hello from dot\n")
 
@@ -63,5 +79,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	fmt.Println(ubuntuLinks)
+	for _, link := range ubuntuLinks {
+		path, err := absolutePath(link.Dest)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		fmt.Printf("Dest: %q\n", path)
+	}
 }
