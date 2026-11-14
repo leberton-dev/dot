@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 )
@@ -8,8 +9,15 @@ import (
 func main() {
 	fmt.Printf("Hello from dot\n")
 
-	// tomlPath := "/home/theleberton/.dotfiles/dotfiles.toml"
-	tomlPath := "examples/dotfiles.toml"
+	configPath := flag.String("config", "~/.dotfiles/dotfiles.toml", "config path")
+	profile := flag.String("profile", "ubuntu", "profile to use")
+	flag.Parse()
+
+	tomlPath, err := expandHome(*configPath)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 
 	config, err := loadConfig(tomlPath)
 	if err != nil {
@@ -17,13 +25,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	ubuntuLinks, err := profileLinks("ubuntu", config)
+	links, err := profileLinks(*profile, config)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 
-	for _, link := range ubuntuLinks {
+	for _, link := range links {
 		status, err := linkStatus(link, tomlPath)
 		if err != nil {
 			fmt.Println(err)

@@ -31,7 +31,7 @@ func (s LinkStatus) String() string {
 }
 
 func linkStatus(link Link, configPath string) (LinkStatus, error) {
-	dest, err := destPath(link.Dest)
+	dest, err := expandHome(link.Dest)
 	if err != nil {
 		return Unknown, err
 	}

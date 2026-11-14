@@ -49,7 +49,7 @@ func profileLinks(name string, config Config) ([]Link, error) {
 	return links, nil
 }
 
-func destPath(path string) (string, error) {
+func expandHome(path string) (string, error) {
 	rest, found := strings.CutPrefix(path, "~/")
 	if found == false {
 		return path, nil
