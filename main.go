@@ -1,6 +1,11 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"os"
+
+	"github.com/BurntSushi/toml"
+)
 
 type Link struct {
 	Source string `toml:"source"`
@@ -25,46 +30,19 @@ type Config struct {
 func main() {
 	fmt.Println("Hello from dot\n")
 
-	gitConfigLink := Link{Source: "/home/theleberton/.dotfiles/git/config", Dest: "/home/theleberton/.gitconfig"}
-	fmt.Println(gitConfigLink)
-	fmt.Println(gitConfigLink.Source)
-	fmt.Println(gitConfigLink.Dest)
+	config := Config{}
+	_, err := toml.DecodeFile("examples/dotfiles.toml", &config)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	for name, profile := range config.Profiles {
+		fmt.Println(name, profile.ModuleNames)
+	}
 	fmt.Println("\n")
 
-	gitIgnoreLink := Link{Source: "/home/theleberton/.dotfiles/git/ignore", Dest: "/home/theleberton/.config/git/ignore"}
-	fmt.Println(gitIgnoreLink)
-	fmt.Println(gitIgnoreLink.Source)
-	fmt.Println(gitIgnoreLink.Dest)
-	fmt.Println("\n")
-
-	gitModule := Module{Packages: []string{"git"}, Links: []Link{gitConfigLink, gitIgnoreLink}}
-	fmt.Println(gitModule)
-	fmt.Println(gitModule.Packages)
-	fmt.Println(gitModule.Packages[0])
-	fmt.Println(gitModule.Links)
-	fmt.Println(gitModule.Links[0].Source)
-	fmt.Println(gitModule.Links[0].Dest)
-	fmt.Println("\n")
-
-	ubuntuProfile := Profile{ModuleNames: []string{"zsh", "git", "nvim"}, PackageManager: "apt"}
-	fmt.Println(ubuntuProfile)
-	fmt.Println(ubuntuProfile.ModuleNames)
-	fmt.Println(ubuntuProfile.PackageManager)
-	fmt.Println(ubuntuProfile.ModuleNames[0])
-	fmt.Println("\n")
-
-	config := Config{Modules: map[string]Module{"git": gitModule}, Profiles: map[string]Profile{"ubuntu": ubuntuProfile}}
-	fmt.Println(config)
-	fmt.Println(config.Modules)
-	fmt.Println(config.Modules["git"])
-	fmt.Println(config.Modules["git"].Packages)
-	fmt.Println(config.Modules["git"].Packages[0])
-	fmt.Println(config.Modules["git"].Links)
-	fmt.Println(config.Modules["git"].Links[0])
-	fmt.Println(config.Modules["git"].Links[0].Source)
-	fmt.Println(config.Modules["git"].Links[0].Dest)
-	fmt.Println(config.Profiles)
-	fmt.Println(config.Profiles["ubuntu"])
-	fmt.Println(config.Profiles["ubuntu"].ModuleNames)
-	fmt.Println(config.Profiles["ubuntu"].ModuleNames[0])
+	for name, module := range config.Modules {
+		fmt.Println(name, module)
+	}
 }
