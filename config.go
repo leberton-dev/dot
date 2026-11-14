@@ -49,6 +49,26 @@ func profileLinks(name string, config Config) ([]Link, error) {
 	return links, nil
 }
 
+func profilePackages(name string, config Config) ([]string, error) {
+	profile, ok := config.Profiles[name]
+	if ok == false {
+		return nil, fmt.Errorf("unknown profile %q", name)
+	}
+
+	packages := []string{}
+	for _, moduleName := range profile.ModuleNames {
+		module, ok := config.Modules[moduleName]
+		if ok == false {
+			return nil, fmt.Errorf("unknown module %q", moduleName)
+		}
+
+		for _, pack := range module.Packages {
+			packages = append(packages, pack)
+		}
+	}
+	return packages, nil
+}
+
 func expandHome(path string) (string, error) {
 	rest, found := strings.CutPrefix(path, "~/")
 	if found == false {

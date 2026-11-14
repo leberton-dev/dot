@@ -5,7 +5,20 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 )
+
+func queryCommand(manager string) ([]string, error) {
+	switch manager {
+	case "apt":
+		return []string{"dpkg", "-s"}, nil
+	case "dnf":
+		return []string{"rpm", "-q"}, nil
+	case "brew":
+		return []string{"brew", "list"}, nil
+	}
+	return []string{}, fmt.Errorf("unknown package manager %q", manager)
+}
 
 func runStatus(profile string, config Config, configPath string) {
 	links, err := profileLinks(profile, config)
@@ -14,6 +27,7 @@ func runStatus(profile string, config Config, configPath string) {
 		os.Exit(1)
 	}
 
+	fmt.Println("Links:")
 	for _, link := range links {
 		status, err := linkStatus(link, configPath)
 		if err != nil {
@@ -22,7 +36,29 @@ func runStatus(profile string, config Config, configPath string) {
 		}
 		fmt.Printf("%-30s -> %s\n", link.Source, status)
 	}
+	fmt.Println()
 
+	query, err := queryCommand(config.Profiles[profile].PackageManager)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "dot: %s\n", err)
+		os.Exit(1)
+	}
+
+	packages, err := profilePackages(profile, config)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "dot: %s\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Println("Packages:")
+	for _, pack := range packages {
+		err := exec.Command(query[0], query[1], pack).Run()
+		if err != nil {
+			fmt.Printf("%-30s -> not installed\n", pack)
+		} else {
+			fmt.Printf("%-30s -> installed\n", pack)
+		}
+	}
 }
 
 func main() {
