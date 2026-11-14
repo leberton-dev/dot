@@ -49,7 +49,7 @@ func profileLinks(name string, config Config) ([]Link, error) {
 	return links, nil
 }
 
-func absolutePath(path string) (string, error) {
+func destPath(path string) (string, error) {
 	rest, found := strings.CutPrefix(path, "~/")
 	if found == false {
 		return path, nil
@@ -63,11 +63,22 @@ func absolutePath(path string) (string, error) {
 	return filepath.Join(home, rest), nil
 }
 
+func sourcePath(configPath string, path string) (string, error) {
+	absConfig, err := filepath.Abs(configPath)
+	if err != nil {
+		return "", err
+	}
+	configDir := filepath.Dir(absConfig)
+	return filepath.Join(configDir, path), nil
+}
+
 func main() {
 	fmt.Printf("Hello from dot\n")
 
+	tomlPath := "examples/dotfiles.toml"
+
 	config := Config{}
-	_, err := toml.DecodeFile("examples/dotfiles.toml", &config)
+	_, err := toml.DecodeFile(tomlPath, &config)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -80,11 +91,18 @@ func main() {
 	}
 
 	for _, link := range ubuntuLinks {
-		path, err := absolutePath(link.Dest)
+		source, err := sourcePath(tomlPath, link.Source)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
-		fmt.Printf("Dest: %q\n", path)
+		fmt.Printf("Source: %q\n", source)
+
+		dest, err := destPath(link.Dest)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		fmt.Printf("Dest: %q\n", dest)
 	}
 }
