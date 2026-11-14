@@ -27,8 +27,18 @@ type Config struct {
 	Profiles map[string]Profile `toml:"profiles"`
 }
 
+func profileLinks(name string, config Config) []Link {
+	links := []Link{}
+	for _, moduleName := range config.Profiles[name].ModuleNames {
+		for _, link := range config.Modules[moduleName].Links {
+			links = append(links, link)
+		}
+	}
+	return links
+}
+
 func main() {
-	fmt.Println("Hello from dot\n")
+	fmt.Printf("Hello from dot\n")
 
 	config := Config{}
 	_, err := toml.DecodeFile("examples/dotfiles.toml", &config)
@@ -37,12 +47,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	for name, profile := range config.Profiles {
-		fmt.Println(name, profile.ModuleNames)
-	}
-	fmt.Println("\n")
-
-	for name, module := range config.Modules {
-		fmt.Println(name, module)
-	}
+	ubuntuLinks := profileLinks("ubuntu", config)
+	fmt.Println(ubuntuLinks)
 }
