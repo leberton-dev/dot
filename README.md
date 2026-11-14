@@ -33,18 +33,18 @@ Global options: `--dry-run`, `--verbose`, `--config <path>`, `--help`, `--versio
 - [x] `status`: print the state of every link, grouped by module
 - [x] `install`: create links, back up existing files, idempotent
 - [ ] `install`: install missing packages for the active profile
-- [ ] `install`: record backups in a state file for `undo`
+- [x] `install`: record backups in a state file for `undo`
 - [ ] `add`: move file into repo, create link, update the toml
 - [ ] `remove`: delete links of a module, restore the real files
 - [ ] `doctor`: list repo files not referenced in the toml
 - [ ] `doctor`: list dead links and invalid toml entries
 - [ ] `undo`: restore backups from the last install
-- [ ] `--dry-run` support for every command that writes
+- [x] `--dry-run` support for every command that writes
 - [ ] `--profile` select which profile to install
 
 ### Quality
-- [ ] Tests running in a temporary fake `$HOME`
-- [ ] Test idempotence (install twice = no change)
+- [x] Tests running in a temporary fake `$HOME`
+- [x] Test idempotence (install twice = no change)
 - [ ] GitHub Actions CI (lint + tests)
 - [ ] README: install, toml format, examples for each command
 
