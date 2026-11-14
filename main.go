@@ -74,34 +74,58 @@ func sourcePath(configPath string, path string) (string, error) {
 	return filepath.Join(configDir, path), nil
 }
 
-func linkStatus(link Link, configPath string) (string, error) {
+type LinkStatus int
+
+const (
+	Unknown LinkStatus = iota
+	Missing
+	Linked
+	WrongTarget
+	RealFile
+)
+
+func (s LinkStatus) String() string {
+	switch s {
+	case Missing:
+		return "missing"
+	case Linked:
+		return "linked"
+	case WrongTarget:
+		return "wrong target"
+	case RealFile:
+		return "real file"
+	}
+	return "unknown"
+}
+
+func linkStatus(link Link, configPath string) (LinkStatus, error) {
 	dest, err := destPath(link.Dest)
 	if err != nil {
-		return "", err
+		return Unknown, err
 	}
 	info, err := os.Lstat(dest)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
-			return "missing", nil
+			return Missing, nil
 		}
-		return "", err
+		return Unknown, err
 	}
 
 	if info.Mode()&os.ModeSymlink != 0 {
 		source, err := sourcePath(configPath, link.Source)
 		if err != nil {
-			return "", err
+			return Unknown, err
 		}
 		destLink, err := os.Readlink(dest)
 		if err != nil {
-			return "", err
+			return Unknown, err
 		}
 		if destLink == source {
-			return "is linked", nil
+			return Linked, nil
 		}
-		return "linked improperly", nil
+		return WrongTarget, nil
 	}
-	return "real file", nil
+	return RealFile, nil
 }
 
 func main() {
