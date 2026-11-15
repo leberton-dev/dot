@@ -1,0 +1,29 @@
+# One link per status. Dests live in /tmp/dot-test.
+# The status depends on the filesystem state, not on this file: see the setup commands.
+
+[modules.test]
+packages = []
+
+# missing: nothing at the dest
+[[modules.test.links]]
+source = "test/missing"
+dest = "/tmp/dot-test/missing"
+
+# linked: symlink pointing to the right source
+[[modules.test.links]]
+source = "test/linked"
+dest = "/tmp/dot-test/linked"
+
+# wrong target: symlink pointing elsewhere
+[[modules.test.links]]
+source = "test/wrong_target"
+dest = "/tmp/dot-test/wrong_target"
+
+# real file: a regular file sits at the dest
+[[modules.test.links]]
+source = "test/real_file"
+dest = "/tmp/dot-test/real_file"
+
+[profiles.ubuntu]
+modules = ["test"]
+package_manager = "apt"
