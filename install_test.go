@@ -11,11 +11,12 @@ func TestInstallLink(t *testing.T) {
 		name       string
 		setup      func(source string, dest string) error
 		wantBackup bool
+		recorded   bool
 	}{
-		{"missing", func(source string, dest string) error { return nil }, false},
-		{"linked", func(source string, dest string) error { return os.Symlink(source, dest) }, false},
-		{"wrong target", func(source string, dest string) error { return os.Symlink("/other", dest) }, true},
-		{"real file", func(source string, dest string) error { return os.WriteFile(dest, []byte("x"), 0644) }, true},
+		{"missing", func(source string, dest string) error { return nil }, false, true},
+		{"linked", func(source string, dest string) error { return os.Symlink(source, dest) }, false, false},
+		{"wrong target", func(source string, dest string) error { return os.Symlink("/other", dest) }, true, true},
+		{"real file", func(source string, dest string) error { return os.WriteFile(dest, []byte("x"), 0644) }, true, true},
 	}
 
 	for _, tt := range tests {
@@ -31,7 +32,7 @@ func TestInstallLink(t *testing.T) {
 				t.Fatalf("setup: %s", err)
 			}
 
-			err = installLink(link, configPath, backDir)
+			entry, err := installLink(link, configPath, backDir)
 			if err != nil {
 				t.Fatalf("installLink: %s", err)
 			}
@@ -48,6 +49,22 @@ func TestInstallLink(t *testing.T) {
 			_, err = os.Lstat(backPath)
 			if tt.wantBackup && err != nil {
 				t.Errorf("backup missing at %s: %s", backPath, err)
+			}
+
+			wantDest := ""
+			if tt.recorded {
+				wantDest = link.Dest
+			}
+			if entry.Dest != wantDest {
+				t.Errorf("entry.Dest: got %q, want %q", entry.Dest, wantDest)
+			}
+
+			wantBackupPath := ""
+			if tt.wantBackup {
+				wantBackupPath = backPath
+			}
+			if entry.Backup != wantBackupPath {
+				t.Errorf("entry.Backup: got %q, want %q", entry.Backup, wantBackupPath)
 			}
 		})
 	}
